@@ -1,7 +1,7 @@
 package simpledb;
 
 import java.io.*;
-
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,6 +26,9 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private ConcurrentHashMap<Integer, Page> myPages;
+    private Integer numPages;
+    
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -33,6 +36,8 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+    	this.numPages = numPages;
+    	myPages = new ConcurrentHashMap<Integer, Page>();
     }
     
     public static int getPageSize() {
@@ -61,8 +66,23 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        // some code went here
+    	Page temp = null;
+    	
+    	//if it contains, return it
+    	if (myPages.contains(pid))
+    	{
+    		temp = myPages.get(pid);
+    	}
+    	else
+    	{
+    		//else evict it?
+    		//specs say to throw for now
+    		throw new DbException("Page not found in database");
+    		
+    	}
+    	
+        return temp;
     }
 
     /**
