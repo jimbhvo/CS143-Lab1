@@ -26,7 +26,7 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
-    private ConcurrentHashMap<Integer, Page> myPages;
+    private ConcurrentHashMap<PageId, Page> myPages;
     private Integer numPages;
     
     /**
@@ -37,7 +37,7 @@ public class BufferPool {
     public BufferPool(int numPages) {
         // some code goes here
     	this.numPages = numPages;
-    	myPages = new ConcurrentHashMap<Integer, Page>();
+    	myPages = new ConcurrentHashMap<PageId, Page>();
     }
     
     public static int getPageSize() {
@@ -70,18 +70,24 @@ public class BufferPool {
     	Page temp = null;
     	
     	//if it contains, return it
-    	if (myPages.contains(pid))
+    	if (myPages.containsKey(pid))
     	{
     		temp = myPages.get(pid);
     	}
     	else
     	{
-    		//else evict it?
-    		//specs say to throw for now
-    		throw new DbException("Page not found in database");
-    		
+    		if (myPages.size() < numPages)
+    		{
+    			int tableid = pid.getTableId();
+    		    Catalog catalog = Database.getCatalog();
+    		    DbFile DBfile = catalog.getDatabaseFile(tableid);
+    		    Page page = DBfile.readPage(pid);
+    		    myPages.put(pid, page);
+    		    temp = page;
+    		}
+    		else
+    			evictPage(); 		
     	}
-    	
         return temp;
     }
 
@@ -211,6 +217,7 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+    	throw new DbException("Page not found in database");
     }
 
 }
