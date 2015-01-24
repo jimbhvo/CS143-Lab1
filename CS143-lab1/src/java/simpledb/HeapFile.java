@@ -14,7 +14,10 @@ import java.util.*;
  * @author Sam Madden
  */
 public class HeapFile implements DbFile {
-
+	File myfile;
+	TupleDesc mytd;
+	
+	
     /**
      * Constructs a heap file backed by the specified file.
      * 
@@ -24,6 +27,8 @@ public class HeapFile implements DbFile {
      */
     public HeapFile(File f, TupleDesc td) {
         // some code goes here
+    	myfile = f;
+    	mytd = td;
     }
 
     /**
@@ -33,7 +38,7 @@ public class HeapFile implements DbFile {
      */
     public File getFile() {
         // some code goes here
-        return null;
+        return myfile;
     }
 
     /**
@@ -41,13 +46,14 @@ public class HeapFile implements DbFile {
      * you will need to generate this tableid somewhere ensure that each
      * HeapFile has a "unique id," and that you always return the same value for
      * a particular HeapFile. We suggest hashing the absolute file name of the
-     * file underlying the heapfile, i.e. f.getAbsoluteFile().hashCode().
+     * file underlying the heapfile, i.e. f.getAbsoluteFile().hashCode(). "ok"
      * 
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        // some code went here
+    	return myfile.getAbsoluteFile().hashCode();
+        
     }
 
     /**
@@ -57,7 +63,8 @@ public class HeapFile implements DbFile {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+    	return mytd;
+
     }
 
     // see DbFile.java for javadocs
@@ -77,7 +84,7 @@ public class HeapFile implements DbFile {
      */
     public int numPages() {
         // some code goes here
-        return 0;
+    	return (int)myfile.length()/BufferPool.getPageSize();
     }
 
     // see DbFile.java for javadocs
@@ -99,6 +106,8 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
         // some code goes here
+    	//Create some iterator that iterates through??
+
         return null;
     }
 
