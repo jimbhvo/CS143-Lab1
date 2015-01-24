@@ -66,9 +66,8 @@ public class HeapPage implements Page {
         @return the number of tuples on this page
     */
     private int getNumTuples() {        
-        // some code goes here
-        return 0;
-
+        // some code went here
+    	return (int) Math.floor((BufferPool.getPageSize()*8))/(td.getSize()*8 + 1);
     }
 
     /**
@@ -76,10 +75,8 @@ public class HeapPage implements Page {
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {        
-        
-        // some code goes here
-        return 0;
-                 
+        // some code went here
+    	return (int) Math.floor(numSlots/8);
     }
     
     /** Return a view of this page before it was modified
@@ -111,8 +108,8 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
-    throw new UnsupportedOperationException("implement this");
+    // some code went here
+    	return pid;
     }
 
     /**
@@ -282,7 +279,15 @@ public class HeapPage implements Page {
      */
     public int getNumEmptySlots() {
         // some code goes here
-        return 0;
+    	//prob can use isSlotUsed for all slots?
+    	int counter = 0;
+    	int numheaderslots = header.length * 8;
+    	for (int i = 0; i < numheaderslots; i++)
+    	{
+    		if (!isSlotUsed(i))
+    			counter++;
+    	}
+        return counter;
     }
 
     /**
@@ -290,7 +295,10 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return false;
+    	//stored like so [     ][     ][     ]
+    	//need to check slot using bit operations
+    	
+        return (((header[i/8]) & (1 << (i%8)))> 0);
     }
 
     /**
@@ -306,8 +314,15 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-        // some code goes here
-        return null;
+        // some code went here
+    	Vector<Tuple> tuplevec = new Vector<Tuple>();
+    	
+    	for ( Tuple temp: tuples)
+    	{
+    		if (temp != null)
+    			tuplevec.add(temp);
+    	}
+    	return tuplevec.iterator();
     }
 
 }
