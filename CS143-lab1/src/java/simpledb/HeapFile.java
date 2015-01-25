@@ -29,32 +29,31 @@ public class HeapFile implements DbFile {
         public HeapFileIterator(TransactionId tid)
         {
             m_open = false;
-            m_page_number = 0;
+            // m_page_number = 0;
             m_tid = tid;
         }
 
         public void open() throws TransactionAbortedException, DbException
         {
-            System.out.println("Starting open()");
             if (m_open)
                 return; // We're already open
 
             m_open = true;
 
             // Initialize m_it
-            m_page_number = 0;
+            m_page_number = 0; // This should not be removed
             int table_id = getId();
             HeapPageId h_id = new HeapPageId(table_id, m_page_number);
-            System.out.println("After checking open()");
             // The line below causes a null pointer exception
             m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
 
             m_it = m_page.iterator();
-            System.out.println("Returning from open");
             return;
         }
-        public void rewind()
+        public void rewind() throws TransactionAbortedException, DbException
         {
+            close();
+            open();
             return;
         }
         public Tuple next() throws NoSuchElementException, TransactionAbortedException, DbException
@@ -72,7 +71,12 @@ public class HeapFile implements DbFile {
             int table_id = getId();
             HeapPageId h_id = new HeapPageId(table_id, m_page_number);
             m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
-            return null;
+            m_it = m_page.iterator();
+
+            if (!m_it.hasNext() )
+                throw new NoSuchElementException("Iterator has no next");
+
+            return m_it.next();
         }
         public boolean hasNext() throws NoSuchElementException, TransactionAbortedException, DbException
         {
@@ -164,8 +168,20 @@ public class HeapFile implements DbFile {
         int offset = size_of_page * page_number;
 
         // Now read in the file byte by byte
-
-        return null;
+        byte[] buf = new byte[size_of_page];
+        try
+        {
+            InputStream str = new BufferedInputStream(new FileInputStream(myfile) );
+            str.skip(offset);
+            str.read(buf);
+            str.close();
+            return new HeapPage( (HeapPageId)pid, buf);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     // see DbFile.java for javadocs
