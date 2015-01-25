@@ -14,8 +14,9 @@ import java.util.*;
  * @author Sam Madden
  */
 public class HeapFile implements DbFile {
-    File myfile;
-    TupleDesc mytd;
+    private File myfile;
+    private TupleDesc mytd;
+    private int m_num_total_pages;
 
     public class HeapFileIterator implements DbFileIterator
     {
@@ -32,12 +33,24 @@ public class HeapFile implements DbFile {
             m_tid = tid;
         }
 
-        public void open()
+        public void open() throws TransactionAbortedException, DbException
         {
+            System.out.println("Starting open()");
             if (m_open)
                 return; // We're already open
 
             m_open = true;
+
+            // Initialize m_it
+            m_page_number = 0;
+            int table_id = getId();
+            HeapPageId h_id = new HeapPageId(table_id, m_page_number);
+            System.out.println("After checking open()");
+            // The line below causes a null pointer exception
+            m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
+
+            m_it = m_page.iterator();
+            System.out.println("Returning from open");
             return;
         }
         public void rewind()
@@ -53,24 +66,29 @@ public class HeapFile implements DbFile {
 
             if (m_it.hasNext() )
                 return m_it.next();
+            // We know there must be a next element, so it must be on the
+            // next page
+            m_page_number++;
+            int table_id = getId();
+            HeapPageId h_id = new HeapPageId(table_id, m_page_number);
+            m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
             return null;
         }
         public boolean hasNext() throws NoSuchElementException, TransactionAbortedException, DbException
         {
+            // If we're closed, we don't have a next
             if (!m_open)
-                return false; // If we're closed, we don't have a next
-
+                return false;
+            // If we have a next, return true
             if (m_it.hasNext() )
                 return true;
-            else
-            {
-                // We're either at the end of a page or there is no next
-                m_page_number++;
-                int table_id = getId();
-                HeapPageId h_id = new HeapPageId(table_id, m_page_number);
-                m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
-                return false;
-            }
+            // If we're not on the last page, return true
+            if (m_page_number < m_num_total_pages-1)
+                return true;
+
+            // We therefore must be at the last page and at the last
+            // iterator
+            return false;
         }
         public void close()
         {
@@ -92,6 +110,10 @@ public class HeapFile implements DbFile {
         // some code goes here
         myfile = f;
         mytd = td;
+        // Set total number of pages to the file size divided by the page
+        // size (and round up)
+        m_num_total_pages = (int)(f.length() / BufferPool.getPageSize() );
+        m_num_total_pages = (int)Math.ceil(m_num_total_pages);
     }
 
     /**
@@ -133,6 +155,16 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
         // some code goes here
+        int size_of_page = BufferPool.getPageSize();
+
+        // Translate page id to page number
+        int page_number = pid.pageNumber();
+
+        // Skip ahead by the appropriate offset and read in 1 size_of_page
+        int offset = size_of_page * page_number;
+
+        // Now read in the file byte by byte
+
         return null;
     }
 
