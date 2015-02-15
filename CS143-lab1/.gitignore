@@ -4,3 +4,6 @@ dist/
 *.swp
 *.swo
 *~
+
+*.txt
+*.dat
