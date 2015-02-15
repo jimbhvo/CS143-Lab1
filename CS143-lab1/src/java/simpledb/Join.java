@@ -68,12 +68,14 @@ public class Join extends Operator {
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         // some code goes here
+    	super.open();
     	mychild1.open();
     	mychild2.open();
     }
 
     public void close() {
         // some code goes here
+    	super.close();
     	mychild1.close();
     	mychild2.close();
     }
@@ -104,16 +106,16 @@ public class Join extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
-    	// Keep trying til we run out
-    	while(true)
+    	// Keep trying until we run out
+    	while(mychild1.hasNext() || nextTuple != null)
     	{
-    		//If there's no more tuple in first iterator, then no match
-    		if (!mychild1.hasNext()) {
-    	        return null;
+    		//Set the next tuple if last tuple didn't match
+    		if (nextTuple == null) {
+    	        nextTuple = mychild1.next();
     	      }
     		
     		//Otherwise we try matches
-    		while (mychild2.hasNext() && nextTuple != null)
+    		while (mychild2.hasNext())
     		{
     			Tuple sometuple = mychild2.next();
     			
@@ -122,26 +124,26 @@ public class Join extends Operator {
     			{
     				Tuple returnTuple = new Tuple(getTupleDesc());
     				
-    				int index = nextTuple.getTupleDesc().numFields();
+    				int base = nextTuple.getTupleDesc().numFields();
                     
                     for(int i = 0; i < nextTuple.getTupleDesc().numFields(); i ++){
                             returnTuple.setField(i, nextTuple.getField(i));
                     }
                     
                     for(int j = 0; j < sometuple.getTupleDesc().numFields(); j++){
-                            returnTuple.setField(j + index, sometuple.getField(j));
+                            returnTuple.setField(j + base, sometuple.getField(j));
                     }
                     
                     return returnTuple;
     			}
     		}
     		
-    		//reset second tuple to the start
+    		//reset to 0
     		mychild2.rewind();
-    		
-    		//set first tuple to the next
-    		nextTuple = mychild1.next();
+    		nextTuple = null;
     	}
+    	
+    	return null;
     }
 
     @Override
