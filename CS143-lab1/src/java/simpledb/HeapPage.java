@@ -241,9 +241,16 @@ public class HeapPage implements Page {
      *         already empty.
      * @param t The tuple to delete
      */
-    public void deleteTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+    public void deleteTuple(Tuple t) throws DbException {    	
+    	//get recordid, get tupleno/slotno, mark + update
+    	RecordId rid = t.getRecordId();
+    	if (!pid.equals(rid.getPageId()))
+    		throw new DbException("Tuple not on this page");
+    	int slot = rid.tupleno();
+    	if (!isSlotUsed(slot))
+    		throw new DbException("Slot is already empty");
+    	tuples[slot] = null;
+    	markSlotUsed(slot, false);
     }
 
     /**
@@ -256,6 +263,30 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+    	if (!td.equals(t.getTupleDesc()))
+    		throw new DbException("Error tupledesc mismatch");
+    	
+    	int slot = -999;
+    	
+    	for (int i = 0; i < header.length; i++) {
+    		for (int j = 0; j < 8; j++) {
+    			int slotNum = (i * 8) + j;
+    			if (!isSlotUsed(slotNum))
+    			{
+    				slot = slotNum;
+    				break;
+    			}
+    		}
+    		if (slot != -999)
+    			break;
+    	}
+    	
+    	if (slot == -999)
+    		throw new DbException("Error page full");
+    	
+    	tuples[slot] = t;
+    	t.setRecordId(new RecordId(pid, slot));
+    	markSlotUsed(slot, true);
     }
 
     /**
@@ -264,7 +295,7 @@ public class HeapPage implements Page {
      */
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
-	// not necessary for lab1
+    	// not necessary for lab1
     }
 
     /**
@@ -272,7 +303,7 @@ public class HeapPage implements Page {
      */
     public TransactionId isDirty() {
         // some code goes here
-	// Not necessary for lab1
+    	// Not necessary for lab1
         return null;      
     }
 

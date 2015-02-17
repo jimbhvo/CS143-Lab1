@@ -18,6 +18,7 @@ public class HeapFile implements DbFile {
     private TupleDesc mytd;
     private int m_num_total_pages;
 
+    
     public class HeapFileIterator implements DbFileIterator
     {
         private boolean m_open;
@@ -118,6 +119,7 @@ public class HeapFile implements DbFile {
         // size (and round up)
         m_num_total_pages = (int)(f.length() / BufferPool.getPageSize() );
         m_num_total_pages = (int)Math.ceil(m_num_total_pages);
+        
     }
 
     /**
@@ -188,7 +190,15 @@ public class HeapFile implements DbFile {
     public void writePage(Page page) throws IOException {
         // some code goes here
         // not necessary for lab1
+    	PageId pageid = page.getId();    	
+    	int offset = pageid.pageNumber() * BufferPool.PAGE_SIZE;
+    	RandomAccessFile raf = new RandomAccessFile(myfile, "rw");
+    	
+    	raf.seek(offset);
+    	raf.write(page.getPageData(), 0, BufferPool.PAGE_SIZE);
+    	raf.close();
     }
+    
 
     /**
      * Returns the number of pages in this HeapFile.
@@ -202,16 +212,44 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        return null;
-        // not necessary for lab1
+    	//Get first free page in database bufferpool getpage
+    	//return as arraylist the page with inserted tuple
+    	HeapPage heappage= null;
+    	for (int i = 0; i < numPages(); i++)
+    	{
+    		PageId pid = new HeapPageId(getId(), i);
+    		heappage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+        	if (heappage.getNumEmptySlots() > 0)
+        		break;
+    	}
+    	
+    	// add tuple depending on free page space
+    	if (heappage != null){
+    		heappage.insertTuple(t);
+    	}
+    	else{
+	        HeapPageId newId = new HeapPageId(getId(), numPages());
+	        heappage = new HeapPage(newId, HeapPage.createEmptyPageData());
+	        heappage.insertTuple(t);
+	        
+	        int offset = numPages() * BufferPool.PAGE_SIZE;
+	        RandomAccessFile raf = new RandomAccessFile(myfile, "rw");
+	        
+	        raf.seek(offset);
+	        raf.write(heappage.getPageData(), 0, BufferPool.PAGE_SIZE);
+	        raf.close();
+    	}
+    	return new ArrayList<Page>(Arrays.asList(heappage));
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+    	//get page, delete it, return page with deleted tuple
+    	PageId pid = t.getRecordId().getPageId();
+    	HeapPage heappage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+    	heappage.deleteTuple(t);
+    	return new ArrayList<Page>(Arrays.asList(heappage));
     }
 
     // see DbFile.java for javadocs
