@@ -20,8 +20,8 @@ public class StringAggregator implements Aggregator {
     private String fname;
     private String afieldname;
     private Map<Field, Field> fieldMap;
-    
-    
+
+
     /**
      * Aggregate constructor
      * @param gbfield the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
@@ -50,7 +50,7 @@ public class StringAggregator implements Aggregator {
     	afieldname = tup.getTupleDesc().getFieldName(myafield);
     	Field mapkey = tup.getField(mygbfield);
     	Field newval = null;
-    	int count; 
+    	int count;
     	IntField getint = (IntField) fieldMap.get(mapkey);
     	if (getint == null)
     		count = 1;
@@ -70,15 +70,15 @@ public class StringAggregator implements Aggregator {
      */
     public DbIterator iterator() {
         // some code goes here
-    	List<Tuple> tupleList = new ArrayList<Tuple>();
-    	
-    	
-   	 	TupleDesc td;
-	 
-   	 	Type[] fieldType;
+        List<Tuple> tupleList = new ArrayList<Tuple>();
+
+
+        TupleDesc td;
+
+        Type[] fieldType;
         String[] fieldName;
-    	
-    	if(mygbfield == NO_GROUPING){
+
+        if(mygbfield == NO_GROUPING){
             fieldType = new Type[1];
             fieldName = new String[1];
             fieldType[0] = Type.INT_TYPE;
@@ -93,7 +93,7 @@ public class StringAggregator implements Aggregator {
             fieldName[1] = afieldname;
             td =  new TupleDesc(fieldType, fieldName);
     	}
-	 
+
     	if(mygbfield == NO_GROUPING){
             Tuple groupedTuple = new Tuple(td);
             groupedTuple.setField(0, fieldMap.get(new IntField(NO_GROUPING)));
@@ -107,8 +107,8 @@ public class StringAggregator implements Aggregator {
                     groupedTuple.setField(1, fieldMap.get(temp));
                     tupleList.add(groupedTuple);
             }
-    	}         
+    	}
         return new TupleIterator(td, tupleList);
-         
+
     }
 }
