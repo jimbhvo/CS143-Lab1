@@ -18,7 +18,7 @@ public class HeapFile implements DbFile {
     private TupleDesc mytd;
     private int m_num_total_pages;
 
-    
+
     public class HeapFileIterator implements DbFileIterator
     {
         private boolean m_open;
@@ -65,7 +65,9 @@ public class HeapFile implements DbFile {
             }
 
             if (m_it.hasNext() )
+            {
                 return m_it.next();
+            }
             // We know there must be a next element, so it must be on the
             // next page
             m_page_number++;
@@ -74,8 +76,11 @@ public class HeapFile implements DbFile {
             m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
             m_it = m_page.iterator();
 
+            // This line sometimes fails
             if (!m_it.hasNext() )
+            {
                 throw new NoSuchElementException("Iterator has no next");
+            }
 
             return m_it.next();
         }
@@ -89,7 +94,14 @@ public class HeapFile implements DbFile {
                 return true;
             // If we're not on the last page, return true
             if (m_page_number < m_num_total_pages-1)
-                return true;
+            {
+                m_page_number++;
+                int table_id = getId();
+                HeapPageId h_id = new HeapPageId(table_id, m_page_number);
+                m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
+                m_it = m_page.iterator();
+                return m_it.hasNext();
+            }
 
             // We therefore must be at the last page and at the last
             // iterator
@@ -188,15 +200,15 @@ public class HeapFile implements DbFile {
     public void writePage(Page page) throws IOException {
         // some code goes here
         // not necessary for lab1
-    	PageId pageid = page.getId();    	
+    	PageId pageid = page.getId();
     	int offset = pageid.pageNumber() * BufferPool.PAGE_SIZE;
     	RandomAccessFile raf = new RandomAccessFile(myfile, "rw");
-    	
+
     	raf.seek(offset);
     	raf.write(page.getPageData(), 0, BufferPool.PAGE_SIZE);
     	raf.close();
     }
-    
+
 
     /**
      * Returns the number of pages in this HeapFile.
@@ -213,7 +225,7 @@ public class HeapFile implements DbFile {
     	//Get first free page in database bufferpool getpage
     	//return as arraylist the page with inserted tuple
     	HeapPage heappage= null;
-    	
+
     	for (int i = 0; i < numPages(); i++)
     	{
     		PageId pid = new HeapPageId(getId(), i);
@@ -223,7 +235,7 @@ public class HeapFile implements DbFile {
         		break;
         	}
     	}
-    	
+
     	// add tuple depending on free page space
     	if (heappage != null){
     		heappage.insertTuple(t);
@@ -232,15 +244,15 @@ public class HeapFile implements DbFile {
 	        HeapPageId newId = new HeapPageId(getId(), numPages());
 	        heappage = new HeapPage(newId, HeapPage.createEmptyPageData());
 	        heappage.insertTuple(t);
-	        
+
 	        int offset = numPages() * BufferPool.PAGE_SIZE;
 	        RandomAccessFile raf = new RandomAccessFile(myfile, "rw");
-	        
+
 	        raf.seek(offset);
 	        raf.write(heappage.getPageData(), 0, BufferPool.PAGE_SIZE);
 	        raf.close();
     	}
-    	
+
     	return new ArrayList<Page>(Arrays.asList(heappage));
     }
 

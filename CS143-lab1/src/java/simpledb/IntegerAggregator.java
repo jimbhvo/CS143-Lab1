@@ -15,17 +15,15 @@ public class IntegerAggregator implements Aggregator {
     private Type mygbfieldtype;
     private int myafield;
     private Op myop;
-    
+
     private Map<Field, Field> fieldMap;
     private Map<Field, Integer> keyLog;
     private String aFieldName = "";
-    
+
     private String groupFieldName = "";
-    
-    
     /**
      * Aggregate constructor
-     * 
+     *
      * @param gbfield
      *            the 0-based index of the group-by field in the tuple, or
      *            NO_GROUPING if there is no grouping
@@ -39,7 +37,7 @@ public class IntegerAggregator implements Aggregator {
      */
 
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // some code goes here	
+        // some code goes here
     	mygbfield = gbfield;
     	mygbfieldtype = gbfieldtype;
     	myafield = afield;
@@ -51,7 +49,7 @@ public class IntegerAggregator implements Aggregator {
     /**
      * Merge a new tuple into the aggregate, grouping as indicated in the
      * constructor
-     * 
+     *
      * @param tup
      *            the Tuple containing an aggregate field and a group-by field
      */
@@ -60,20 +58,20 @@ public class IntegerAggregator implements Aggregator {
     	// merge based on grouping
     	Field mapkey;
     	aFieldName = tup.getTupleDesc().getFieldName(myafield);
-    	
+
 		if (mygbfield == NO_GROUPING){
 			mapkey = new IntField(NO_GROUPING);
 		}
 		else{
-	 		mapkey = tup.getField(mygbfield);
-	 		groupFieldName = tup.getTupleDesc().getFieldName(mygbfield);
+			mapkey = tup.getField(mygbfield);
+			groupFieldName = tup.getTupleDesc().getFieldName(mygbfield);
 		}
 				
 		IntField mapval = (IntField) fieldMap.get(mapkey); 	
 		IntField aggregator = (IntField) tup.getField(myafield);
 		Field aggregatevalue = null;
 		int sum, count;
-		
+
 		//Set newval depending on the op
 		if(myop.equals(Op.COUNT)){
     		if(mapval == null)
@@ -85,12 +83,12 @@ public class IntegerAggregator implements Aggregator {
 		else if(myop.equals(Op.SUM)){
         	if(mapval == null)
                 sum = 0;
-        	else 
-               	sum =  mapval.getValue();
+        	else
+                sum =  mapval.getValue();
         	sum += aggregator.getValue();
         	aggregatevalue = new IntField(sum);
 		}
-		else if(myop.equals(Op.AVG)){             
+		else if(myop.equals(Op.AVG)){
         	if(mapval == null){
                 count = 1;
                 keyLog.put(mapkey, 1);
@@ -99,20 +97,20 @@ public class IntegerAggregator implements Aggregator {
                 sum = mapval.getValue() + aggregator.getValue();
                 count = keyLog.get(mapkey) + 1;
                 keyLog.put(mapkey, count);
-        	}                                 
+        	}
         	aggregatevalue = new IntField(sum);
 		}
 		else if(myop.equals(Op.MIN)){
         	if(mapval == null)
                 count = aggregator.getValue();
-        	else 
+        	else
                 count = Math.min(aggregator.getValue(), mapval.getValue());
         	aggregatevalue = new IntField(count);
 		}
 		else if(myop.equals(Op.MAX)){
         	if(mapval == null)
         		count = aggregator.getValue();
-        	else 
+        	else
         		count = Math.max(aggregator.getValue(), mapval.getValue());
         	aggregatevalue = new IntField(count);
 		}
@@ -121,7 +119,7 @@ public class IntegerAggregator implements Aggregator {
 
     /**
      * Create a DbIterator over group aggregate results.
-     * 
+     *
      * @return a DbIterator whose tuples are the pair (groupVal, aggregateVal)
      *         if using group, or a single (aggregateVal) if no grouping. The
      *         aggregateVal is determined by the type of aggregate specified in
@@ -129,13 +127,13 @@ public class IntegerAggregator implements Aggregator {
      */
     public DbIterator iterator() {
         // some code goes here
-    	 ArrayList<Tuple> tupleList = new ArrayList<Tuple>();
-         
-    	 TupleDesc td;
-    	 
-    	 Type[] fieldType;
+         ArrayList<Tuple> tupleList = new ArrayList<Tuple>();
+
+         TupleDesc td;
+
+         Type[] fieldType;
          String[] fieldName;
-         
+
          if(mygbfield == NO_GROUPING){
                  fieldType = new Type[1];
                  fieldName = new String[1];
@@ -151,9 +149,9 @@ public class IntegerAggregator implements Aggregator {
                  fieldName[1] = aFieldName;
                  td =  new TupleDesc(fieldType, fieldName);
          }
-    	 
+
          if(mygbfield == NO_GROUPING){
-                 // create a new tuple and set the value of the aggregate 
+                 // create a new tuple and set the value of the aggregate
                  Tuple groupedTuple = new Tuple(td);
                  groupedTuple.setField(0, fieldMap.get(new IntField(NO_GROUPING)));
                  int value;
@@ -164,10 +162,10 @@ public class IntegerAggregator implements Aggregator {
           		 }
                  tupleList.add(groupedTuple);
                  return new TupleIterator(td, tupleList);
-                 
+
          } else {
                  Set<Field> groups = fieldMap.keySet();
-                 
+
                  for(Field f : groups){
                          Tuple groupedTuple = new Tuple(td);
                          groupedTuple.setField(0, f);
@@ -179,9 +177,9 @@ public class IntegerAggregator implements Aggregator {
                  		 }
                          tupleList.add(groupedTuple);
                  }
-                                 
+
                  return new TupleIterator(td, tupleList);
-                 
+
          }
     }
 

@@ -4,7 +4,7 @@ import java.util.*;
 import java.io.*;
 
 /**
- * Each instance of HeapPage stores data for one page of HeapFiles and 
+ * Each instance of HeapPage stores data for one page of HeapFiles and
  * implements the Page interface that is used by BufferPool.
  *
  * @see HeapFile
@@ -18,7 +18,7 @@ public class HeapPage implements Page {
     final byte header[];
     final Tuple tuples[];
     final int numSlots;
-    
+
     byte[] oldData;
     private final Byte oldDataLock=new Byte((byte)0);
 
@@ -51,7 +51,7 @@ public class HeapPage implements Page {
         header = new byte[getHeaderSize()];
         for (int i=0; i<header.length; i++)
             header[i] = dis.readByte();
-        
+
         tuples = new Tuple[numSlots];
         try{
             // allocate and read the actual records of this page
@@ -68,9 +68,9 @@ public class HeapPage implements Page {
     /** Retrieve the number of tuples on this page.
         @return the number of tuples on this page
     */
-    private int getNumTuples() {        
+    private int getNumTuples() {
         // some code went here
-    	
+
     	return (int) Math.floor((BufferPool.getPageSize()*8)/((td.getSize()*8) + 1));
     }
 
@@ -78,12 +78,12 @@ public class HeapPage implements Page {
      * Computes the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
-    private int getHeaderSize() {        
+    private int getHeaderSize() {
         // some code went here
     	double numtup = getNumTuples();
     	return (int) Math.ceil(numtup/8);
     }
-    
+
     /** Return a view of this page before it was modified
         -- used by recovery */
     public HeapPage getBeforeImage(){
@@ -101,7 +101,7 @@ public class HeapPage implements Page {
         }
         return null;
     }
-    
+
     public void setBeforeImage() {
         synchronized(oldDataLock)
         {
@@ -198,7 +198,7 @@ public class HeapPage implements Page {
                 Field f = tuples[i].getField(j);
                 try {
                     f.serialize(dos);
-                
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -244,7 +244,7 @@ public class HeapPage implements Page {
      *         already empty.
      * @param t The tuple to delete
      */
-    public void deleteTuple(Tuple t) throws DbException {    	
+    public void deleteTuple(Tuple t) throws DbException {
     	//get recordid, get tupleno/slotno, mark + update
     	RecordId rid = t.getRecordId();
     	if (!pid.equals(rid.getPageId()))
@@ -268,10 +268,10 @@ public class HeapPage implements Page {
         // not necessary for lab1
     	if (!td.equals(t.getTupleDesc()))
     		throw new DbException("Error tupledesc mismatch");
-    	
+
     	int slot = -1;
     	boolean slotfound = false;
-    	
+
     	for (int i = 0; i < header.length; i++) {
     		for (int j = 0; j < 8; j++) {
     			slot = (i * 8) + j;
@@ -284,10 +284,10 @@ public class HeapPage implements Page {
     		if (slotfound)
     			break;
     	}
-    	
+
     	if (slot == -1 || !slotfound)
     		throw new DbException("Error page full");
-    	
+
     	tuples[slot] = t;
     	t.setRecordId(new RecordId(pid, slot));
     	markSlotUsed(slot, true);
@@ -315,7 +315,7 @@ public class HeapPage implements Page {
     	// Not necessary for lab1
     	if (dirty)
     		return dirty_tid;
-        return null;      
+        return null;
     }
 
     /**
@@ -353,15 +353,15 @@ public class HeapPage implements Page {
     	//can check slot using bit operations
     	int headerNum = i / 8;
     	byte initHeader = header[headerNum];
-    	
+
     	int mask = 1 << (i % 8);
     	int newhead;
-    	
+
     	if (value)
     		newhead = initHeader | mask;
-     	else 
+     	else
      		newhead = initHeader & ~mask;
-     	
+
     	header[headerNum] = (byte)newhead;
     }
 
@@ -372,7 +372,7 @@ public class HeapPage implements Page {
     public Iterator<Tuple> iterator() {
         // some code went here
     	Vector<Tuple> tuplevec = new Vector<Tuple>();
-    	
+
     	for ( Tuple temp: tuples)
     	{
     		if (temp != null)
