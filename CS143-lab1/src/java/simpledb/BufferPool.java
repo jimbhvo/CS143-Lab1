@@ -77,17 +77,16 @@ public class BufferPool {
         }
         else
         {
-            if (myPages.size() < numPages)
+            if (myPages.size() >= numPages)
             {
-                int tableid = pid.getTableId();
-                Catalog catalog = Database.getCatalog();
-                DbFile DBfile = catalog.getDatabaseFile(tableid);
-                Page page = DBfile.readPage(pid);
-                myPages.put(pid, page);
-                temp = page;
+                evictPage(); // This will decrease myPages.size() by 1
             }
-            else
-                evictPage();
+            int tableid = pid.getTableId();
+            Catalog catalog = Database.getCatalog();
+            DbFile DBfile = catalog.getDatabaseFile(tableid);
+            Page page = DBfile.readPage(pid);
+            myPages.put(pid, page);
+            temp = page;
         }
         return temp;
     }
@@ -155,7 +154,7 @@ public class BufferPool {
         // Get pages from database, insert
     	DbFile dbfile = Database.getCatalog().getDatabaseFile(tableId);
     	ArrayList<Page> markedPages = dbfile.insertTuple(tid, t);
-    	
+
     	// For each page, mark them and update in pages
     	for (Page page : markedPages){
     		page.markDirty(true, tid);
@@ -180,7 +179,7 @@ public class BufferPool {
     	// Get pages from database, delete
     	DbFile dbfile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
     	ArrayList<Page> markedPages = dbfile.deleteTuple(tid, t);
-    	
+
     	// For each page, mark them and update in pages
     	for (Page page : markedPages){
     		page.markDirty(true, tid);
@@ -196,6 +195,10 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
+
+        // Iterate over the concurrent hashmap
+        for (PageId k : myPages.keySet() )
+            flushPage(k);
 
     }
 
@@ -216,6 +219,24 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+
+        // Look for the page
+        Page this_page = myPages.get(pid);
+        if (this_page == null)
+        {
+            // This is an invalid page
+            throw new IOException("Error: this page does not exist");
+        }
+
+        // Otherwise, write the page
+        int tableid = pid.getTableId();
+        DbFile dbf = Database.getCatalog().getDatabaseFile(tableid);
+        dbf.writePage(this_page);
+
+        // Now mark the page as clean, since we just wrote it
+
+        this_page.markDirty(false, null);
+
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -232,7 +253,26 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
-        throw new DbException("Page not found in database");
+        //throw new DbException("Page not found in database");
+
+        try
+        {
+            // Pick the first page in the buffer pool
+            PageId pid = myPages.keySet().iterator().next();
+
+            // Now flush this page
+            flushPage(pid);
+
+            // Now remove from the map
+            myPages.remove(pid);
+
+        }
+        catch (Exception e)
+        {
+            throw new DbException("A page could not be evicted due to: " + e);
+        }
+
+
     }
 
 }
