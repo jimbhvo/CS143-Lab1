@@ -65,7 +65,9 @@ public class HeapFile implements DbFile {
             }
 
             if (m_it.hasNext() )
+            {
                 return m_it.next();
+            }
             // We know there must be a next element, so it must be on the
             // next page
             m_page_number++;
@@ -74,8 +76,11 @@ public class HeapFile implements DbFile {
             m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
             m_it = m_page.iterator();
 
+            // This line sometimes fails
             if (!m_it.hasNext() )
+            {
                 throw new NoSuchElementException("Iterator has no next");
+            }
 
             return m_it.next();
         }
@@ -89,7 +94,14 @@ public class HeapFile implements DbFile {
                 return true;
             // If we're not on the last page, return true
             if (m_page_number < m_num_total_pages-1)
-                return true;
+            {
+                m_page_number++;
+                int table_id = getId();
+                HeapPageId h_id = new HeapPageId(table_id, m_page_number);
+                m_page = (HeapPage)Database.getBufferPool().getPage(m_tid, h_id, Permissions.READ_WRITE);
+                m_it = m_page.iterator();
+                return m_it.hasNext();
+            }
 
             // We therefore must be at the last page and at the last
             // iterator
