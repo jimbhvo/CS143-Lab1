@@ -22,9 +22,6 @@ public class IntegerAggregator implements Aggregator {
     
     private String groupFieldName = "";
     
-    private int sumtotal;
-    private int counter;
-    
     
     /**
      * Aggregate constructor
@@ -47,7 +44,6 @@ public class IntegerAggregator implements Aggregator {
     	mygbfieldtype = gbfieldtype;
     	myafield = afield;
     	myop = what;
-    	sumtotal = 0;
     	keyLog = new HashMap<Field, Integer>();
     	fieldMap = new HashMap<Field, Field>();
     }
@@ -72,8 +68,8 @@ public class IntegerAggregator implements Aggregator {
 	 		mapkey = tup.getField(mygbfield);
 	 		groupFieldName = tup.getTupleDesc().getFieldName(mygbfield);
 		}
-
-		IntField mapval = (IntField) fieldMap.get(mapkey);
+				
+		IntField mapval = (IntField) fieldMap.get(mapkey); 	
 		IntField aggregator = (IntField) tup.getField(myafield);
 		Field aggregatevalue = null;
 		int sum, count;
@@ -99,11 +95,8 @@ public class IntegerAggregator implements Aggregator {
                 count = 1;
                 keyLog.put(mapkey, 1);
                 sum = aggregator.getValue();
-                counter = count;
-                sumtotal = sum;
         	} else {
-                sum = sumtotal + aggregator.getValue();
-                sumtotal = sum;
+                sum = mapval.getValue() + aggregator.getValue();
                 count = keyLog.get(mapkey) + 1;
                 keyLog.put(mapkey, count);
         	}                                 
@@ -163,7 +156,12 @@ public class IntegerAggregator implements Aggregator {
                  // create a new tuple and set the value of the aggregate 
                  Tuple groupedTuple = new Tuple(td);
                  groupedTuple.setField(0, fieldMap.get(new IntField(NO_GROUPING)));
-                 
+                 int value;
+                 if (myop.equals(Aggregator.Op.AVG)) {
+          			value = ((IntField) fieldMap.get(new IntField(NO_GROUPING))).getValue() 
+          					/ keyLog.get(new IntField(NO_GROUPING)).intValue();
+          			groupedTuple.setField(0, new IntField(value));
+          		 }
                  tupleList.add(groupedTuple);
                  return new TupleIterator(td, tupleList);
                  
