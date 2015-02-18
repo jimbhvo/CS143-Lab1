@@ -117,9 +117,7 @@ public class HeapFile implements DbFile {
         mytd = td;
         // Set total number of pages to the file size divided by the page
         // size (and round up)
-        m_num_total_pages = (int)(f.length() / BufferPool.getPageSize() );
-        m_num_total_pages = (int)Math.ceil(m_num_total_pages);
-        
+        m_num_total_pages = (int)Math.ceil((f.length() / BufferPool.getPageSize() ));
     }
 
     /**
@@ -215,12 +213,15 @@ public class HeapFile implements DbFile {
     	//Get first free page in database bufferpool getpage
     	//return as arraylist the page with inserted tuple
     	HeapPage heappage= null;
+    	
     	for (int i = 0; i < numPages(); i++)
     	{
     		PageId pid = new HeapPageId(getId(), i);
-    		heappage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
-        	if (heappage.getNumEmptySlots() > 0)
+    		HeapPage temppage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+        	if (temppage.getNumEmptySlots() > 0){
+        		heappage = temppage;
         		break;
+        	}
     	}
     	
     	// add tuple depending on free page space
@@ -239,6 +240,7 @@ public class HeapFile implements DbFile {
 	        raf.write(heappage.getPageData(), 0, BufferPool.PAGE_SIZE);
 	        raf.close();
     	}
+    	
     	return new ArrayList<Page>(Arrays.asList(heappage));
     }
 
