@@ -1,0 +1,60 @@
+CS 143 Lab 2 Writeup
+
+My name: Nathan Fischer, #804180060
+Partner: Jimmy Vo, #004177090
+
+For this lab, we will be using 1 slip day. Because we used 2 slip days for
+lab 1, this means we have 1 remaining slip day.
+
+Design decisions
+----------------
+
+We chose to implement a nested loop join, since these seemed most
+straightforward. This is analogous to computing a cross-product and
+eliminating rows where the predicate is not satisfied. This is likely not
+the fastest implementation, but it is guaranteed to evaluate correctly every
+time and is very readable.
+
+For the aggregates, we essentially implemented this as an else-if chain for
+each aggregate operator type (COUNT, SUM, etc.). Inside each case, we
+implemented the code for that specific operator. This was the most
+straightforward approach.
+
+For our adding and deleting in heapfiles, we had a likewise straightforward
+implementation. We used a lazy approach, where once a tuple is deleted, its
+slot is set to null and is marked as unused. Then, when we iterate over the
+slots, we just skip over slots that are marked as unused, instead of having
+to clean up by reordering our Heap Page vector.
+
+Insertion and deletion were straightforward once we implemented insertion
+and deletion of tuples.
+
+Our main design decision involved the choice of eviction policy. We chose to
+make this a round robin policy, since it was fairly straightforward to
+implement. The page that is evicted is the first page in the concurrent
+hashmap.
+
+Changes to the API
+------------------
+
+We did not make any notable changes to the API that were not already made
+during lab 1. We only filled out skeleton functions.
+
+Missing or incomplete code
+--------------------------
+
+We have no incomplete or missing code to the best of our knowledge.
+
+We were able to pass all tests and systemtests for this lab. Also, we fixed
+the errors that were present in our lab 1 code, so those are no longer an
+issue.
+
+Time spent on the project
+-------------------------
+
+As with the first lab, we each spent several hours on this lab. The largest
+difficulty was in tracking down bugs in the code. We were hung up for a
+while on errors with the DeleteTest systemtest, but were able to find the
+error in how the HeapPage iterator was implemented.
+
+No aspects of the lab were unreasonably challenging.
