@@ -132,15 +132,7 @@ public class IntHistogram {
      * @return A string describing this histogram, for debugging purposes
      */
     public String toString() {
-    	String ret = "";
-    	for (int i = 0; i < buckets.length; i++)
-    	{
-    		ret += "Bucket " + i + ": ";
-    		for (int j = 0; j < buckets[i]; j++)
-    			ret += ",";
-    		ret += "\n";
-    	}
         // some code goes here
-        return ret;
+        return "";
     }
 }

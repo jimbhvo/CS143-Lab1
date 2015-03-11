@@ -12,7 +12,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * This class is not needed in implementing lab1 and lab2.
  */
 public class TableStats {
-
+	private int iocost;
+	private DbFile myfile;
+	private TupleDesc mytd;
+	private int totaltups;
+	private HashMap <String, IntHistogram> inthistos;
+	private HashMap <String, StringHistogram> strhistos;
+	private HashMap <String, Integer> lows;
+	private HashMap <String, Integer> highs;
+	
     private static final ConcurrentHashMap<String, TableStats> statsMap = new ConcurrentHashMap<String, TableStats>();
 
     static final int IOCOSTPERPAGE = 1000;
@@ -85,6 +93,101 @@ public class TableStats {
         // necessarily have to (for example) do everything
         // in a single scan of the table.
         // some code goes here
+    	// Init?
+    	myfile = Database.getCatalog().getDatabaseFile(tableid);
+    	mytd = Database.getCatalog().getTupleDesc(tableid);
+    	iocost = ioCostPerPage;
+    	inthistos = new HashMap<String, IntHistogram>();
+    	strhistos = new HashMap<String, StringHistogram>();
+    	lows = new HashMap<String, Integer>();
+    	highs = new HashMap<String, Integer>();
+    	totaltups = 0;
+    	
+    	
+    	//use iterator and td and find the max/min
+    	TransactionId tid = new TransactionId();
+    	DbFileIterator iter = myfile.iterator(tid);
+
+    	Tuple temptup;
+    	try {
+			iter.open();
+			while (iter.hasNext())
+	    	{
+	    		temptup = iter.next();
+	    		totaltups++;
+	    		for (int i = 0; i < mytd.numFields(); i++)
+	    		{	    
+	    			String tempfield = mytd.getFieldName(i);
+	    			//Only need to worry about ints max and min
+	    			if (mytd.getFieldType(i).equals(Type.INT_TYPE)){
+	    				int tempvalue = ((IntField) temptup.getField(i)).getValue();
+	    				//If key not found, add value, otherwise compare it
+	    				if (!highs.containsKey(tempfield))
+	    					highs.put(tempfield, tempvalue);
+	    				else 
+	    				{
+	    					int currentMax = highs.get(tempfield);
+	    					highs.put(tempfield, (currentMax > tempvalue) ? currentMax : tempvalue);
+	    				}
+	    				//same as high except use less than sign
+	    				if (!lows.containsKey(tempfield))
+	    					lows.put(tempfield, tempvalue);
+	    				else 
+	    				{
+	    					int currentMin = lows.get(tempfield);
+	    					lows.put(tempfield, (currentMin < tempvalue) ? currentMin : tempvalue);
+	    				}
+	    			}
+	    		}
+	    	}
+	    	iter.close();
+		} 
+    	catch (Exception e) {
+    		e.printStackTrace();
+		}
+    
+    	//Now we can init the histograms since we set the highs and lows
+    	// initialize histograms
+    	for (int i = 0; i < mytd.numFields(); i++)
+    	{
+    		String tempfield = mytd.getFieldName(i);
+    		if (mytd.getFieldType(i).equals(Type.INT_TYPE))
+    		{
+    			IntHistogram inthist = new IntHistogram(NUM_HIST_BINS, lows.get(tempfield), highs.get(tempfield));
+    			inthistos.put(tempfield, inthist);
+    		}
+    		else
+    		{
+    			StringHistogram strhist = new StringHistogram(NUM_HIST_BINS);
+    			strhistos.put(tempfield, strhist);
+    		}
+    	}
+    	
+    	//Now we can fill the histograms with the tuples using addValue func
+    	//this sorts them out into buckets
+    	try {
+			iter.open();
+			while (iter.hasNext())
+			{
+				temptup = iter.next();
+				for (int i = 0; i < mytd.numFields(); i++)
+				{
+					String tempfield = mytd.getFieldName(i);
+					//if it's not int, it's string. Read from temptup and add using addValue
+					if (mytd.getFieldType(i).equals(Type.INT_TYPE)){
+						int tempval = ((IntField) temptup.getField(i)).getValue();
+						inthistos.get(tempfield).addValue(tempval);
+					}
+					else{
+						String tempstring = ((StringField) temptup.getField(i)).getValue();
+						strhistos.get(tempfield).addValue(tempstring);
+					}
+				}
+			}
+			iter.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
     }
 
     /**
@@ -101,7 +204,7 @@ public class TableStats {
      */
     public double estimateScanCost() {
         // some code goes here
-        return 0;
+        return ((HeapFile) myfile).numPages()*iocost;
     }
 
     /**
@@ -115,7 +218,7 @@ public class TableStats {
      */
     public int estimateTableCardinality(double selectivityFactor) {
         // some code goes here
-        return 0;
+        return (int) (totaltups*selectivityFactor);
     }
 
     /**
@@ -148,7 +251,17 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         // some code goes here
-        return 1.0;
+    	String tempfield = mytd.getFieldName(field);
+        if (constant.getType().equals(Type.INT_TYPE)){
+        	IntHistogram hist =  inthistos.get(tempfield);
+            int tempvalue = ((IntField) constant).getValue();
+            return hist.estimateSelectivity(op,tempvalue);
+        }
+        else{
+            String tempstr = ((StringField) constant).getValue();
+            StringHistogram hist = strhistos.get(tempfield);
+            return hist.estimateSelectivity(op,tempstr);
+        }
     }
 
     /**
@@ -156,7 +269,7 @@ public class TableStats {
      * */
     public int totalTuples() {
         // some code goes here
-        return 0;
+        return totaltups;
     }
 
 }
