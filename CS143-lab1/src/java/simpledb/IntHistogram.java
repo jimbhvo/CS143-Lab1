@@ -4,6 +4,12 @@ package simpledb;
  */
 public class IntHistogram {
 
+	private int[] buckets;
+	private int mymin;
+	private int range;
+	private int mod;
+	private int total;
+	
     /**
      * Create a new IntHistogram.
      * 
@@ -22,6 +28,11 @@ public class IntHistogram {
      */
     public IntHistogram(int buckets, int min, int max) {
     	// some code goes here
+    	this.buckets = new int[buckets];
+    	mymin = min;
+    	range = max - min + 1;
+    	mod = (int)Math.ceil((double)(range)/buckets);
+    	total = 0;
     }
 
     /**
@@ -30,6 +41,9 @@ public class IntHistogram {
      */
     public void addValue(int v) {
     	// some code goes here
+    	int bucketnum = (v - mymin)/mod;
+    	buckets[bucketnum]++;
+    	total++;
     }
 
     /**
@@ -43,9 +57,61 @@ public class IntHistogram {
      * @return Predicted selectivity of this particular operator and value
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
-
+    	
+    	//get the bucket that v would fall into
+    	int bucketnum = (v - mymin)/mod;
+    	if (bucketnum < 0)
+    		bucketnum = -1;
+    	if (bucketnum > buckets.length)
+    		bucketnum = buckets.length;
+    	
+    	//get current count of bucket v
+    	double bucketcount = 0;
+    	if (bucketnum > -1 && bucketnum < buckets.length)
+    		bucketcount = buckets[bucketnum];
+    	
+    	//get amount strictly greater than v
+    	double greaterthan = 0;
+    	if (bucketnum < 0)
+    		greaterthan = total;
+    	else if (bucketnum == range)
+    		greaterthan = 0;
+    	else 
+    		for (int i = bucketnum + 1; i < buckets.length; i++) {
+        		greaterthan += buckets[i];
+        	}
+    	
+    	//total refers to total number of bucket entries
+    	double result = 0;
+    	switch(op){
+    	case EQUALS:
+    	case LIKE:
+    		result = bucketcount/total;
+    		break;
+    	case GREATER_THAN:
+    		result = greaterthan/total;
+    		break;
+    	case GREATER_THAN_OR_EQ:
+    		result = greaterthan + bucketcount;
+    		result /= total;
+    		break;
+    	case LESS_THAN:
+    		result = (total - (greaterthan + bucketcount));
+    		result /= total;
+    		break;
+    	case LESS_THAN_OR_EQ:
+    		result = (total - greaterthan);
+    		result /= total;
+    		break;
+    	case NOT_EQUALS:
+    		result = (total - bucketcount);
+    		result /= total;
+    		break;
+		default:
+			return -1;
+    	}
     	// some code goes here
-        return -1.0;
+        return result;
     }
     
     /**
@@ -66,8 +132,15 @@ public class IntHistogram {
      * @return A string describing this histogram, for debugging purposes
      */
     public String toString() {
-
+    	String ret = "";
+    	for (int i = 0; i < buckets.length; i++)
+    	{
+    		ret += "Bucket " + i + ": ";
+    		for (int j = 0; j < buckets[i]; j++)
+    			ret += ",";
+    		ret += "\n";
+    	}
         // some code goes here
-        return null;
+        return ret;
     }
 }
