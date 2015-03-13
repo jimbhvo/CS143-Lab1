@@ -244,8 +244,55 @@ public class JoinOptimizer {
         // should work.
 
         // some code goes here
-        //Replace the following
-        return joins;
+        /*
+        Pseudo code
+        j = set of join nodes
+        for (i in 1...|j|):
+          for s in {all length i subsets of j}
+            bestPlan = {}
+            for s' in {all length d-1 subsets of s}
+              subplan = optjoin(s')
+              plan = best way to join (s-s') to subplan
+              if (cost(plan) < cost(bestPlan))
+                bestPlan = plan
+            optjoin(s) = bestPlan
+        return optjoin(j)
+        */
+        PlanCache c = new PlanCache();
+
+        // Convert vector to a set
+        Set<LogicalJoinNode> join_set = new HashSet<LogicalJoinNode>();
+        for (LogicalJoinNode v : joins)
+            join_set.add(v);
+
+        for (int i=1; i <= joins.size(); i++)
+        {
+            // Get a set of subsets
+            Set<Set<LogicalJoinNode>> i_length_subsets = enumerateSubsets(joins, i);
+            for (Set<LogicalJoinNode> s : i_length_subsets) // for each subset
+            {
+                // Make a plan any plan can beat
+                CostCard best_plan = new CostCard();
+                best_plan.cost = Double.MAX_VALUE;
+                best_plan.card = Integer.MAX_VALUE;
+                best_plan.plan = null;
+
+                for (LogicalJoinNode s_prime : s)
+                {
+                    CostCard cur_plan = computeCostAndCardOfSubplan(stats, filterSelectivities, s_prime, s, Double.MAX_VALUE, c);
+                    if (cur_plan == null)
+                        continue;
+                    if (cur_plan.cost < best_plan.cost)
+                        best_plan = cur_plan;
+                }
+                // Now we have a true best_plan for i_length subsets
+                if (best_plan.plan != null)
+                    c.addPlan(s, best_plan.cost, best_plan.card, best_plan.plan);
+            }
+        }
+
+        // Use cache to get best order
+        return c.getOrder(join_set);
     }
 
     // ===================== Private Methods =================================
