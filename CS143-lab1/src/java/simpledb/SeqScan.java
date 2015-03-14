@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.util.*;
+import simpledb.TupleDesc.TDItem;
 
 /**
  * SeqScan is an implementation of a sequential scan access method that reads
@@ -15,11 +16,11 @@ public class SeqScan implements DbIterator {
     int myTableId;
     String myTableAlias;
     DbFileIterator myIterator	;
-    
+
     /**
      * Creates a sequential scan over the specified table as a part of the
      * specified transaction.
-     * 
+     *
      * @param tid
      *            The transaction this scan is running as a part of.
      * @param tableid
@@ -49,9 +50,9 @@ public class SeqScan implements DbIterator {
     	// some code went here
     	return Database.getCatalog().getTableName(myTableId);
     }
-    
+
     /**
-     * @return Return the alias of the table this operator scans. 
+     * @return Return the alias of the table this operator scans.
      * */
     public String getAlias()
     {
@@ -92,13 +93,32 @@ public class SeqScan implements DbIterator {
      * prefixed with the tableAlias string from the constructor. This prefix
      * becomes useful when joining tables containing a field(s) with the same
      * name.
-     * 
+     *
      * @return the TupleDesc with field names from the underlying HeapFile,
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
         // some code went here
-    	return Database.getCatalog().getTupleDesc(myTableId);
+    	//return Database.getCatalog().getTupleDesc(myTableId);
+
+        // Create a new tuple desc with table aliases prefixing the column
+    	TupleDesc oldTd = Database.getCatalog().getTupleDesc(myTableId);
+
+        int len = oldTd.numFields();
+        Type[] newTypes = new Type[len];
+        String[] newNames = new String[len];
+
+        Iterator<TDItem> it = oldTd.iterator();
+        for (int k=0; it.hasNext(); k++)
+        {
+            // Get each column
+            it.next();
+            newTypes[k] = oldTd.getFieldType(k);
+            newNames[k] = myTableAlias + "." + oldTd.getFieldName(k);
+        }
+
+        return new TupleDesc(newTypes, newNames);
+
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {

@@ -9,5 +9,10 @@ dist/
 *.dat
 
 log
+*.bz2
+*.tar
+0.01/
+0.1/
+0.001/
 
 runMyTests

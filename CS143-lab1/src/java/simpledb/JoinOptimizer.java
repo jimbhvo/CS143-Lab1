@@ -292,7 +292,13 @@ public class JoinOptimizer {
         }
 
         // Use cache to get best order
-        return c.getOrder(join_set);
+        Vector <LogicalJoinNode> returner = c.getOrder(join_set);
+
+        if (explain)
+        {
+            printJoins(returner, c, stats, filterSelectivities);
+        }
+        return returner;
     }
 
     // ===================== Private Methods =================================
